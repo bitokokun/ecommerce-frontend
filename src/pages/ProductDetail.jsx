@@ -2,16 +2,21 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { catalog } from "../api.js";
 import { useCart } from "../context/CartContext.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const { user } = useAuth();
+  const toast = useToast();
   const [product, setProduct] = useState(null);
   const [variantId, setVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
-  const [added, setAdded] = useState(false);
+  const [addedKey, setAddedKey] = useState(0);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     catalog.detail(id).then((data) => {
@@ -20,18 +25,29 @@ export default function ProductDetail() {
     });
   }, [id]);
 
-  if (!product) return <div className="container">Loading…</div>;
+  if (!product) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
 
   const variant = product.variants.find((v) => v.id === Number(variantId));
 
   async function handleAddToCart() {
     setError("");
-    setAdded(false);
+    // Carts belong to accounts, so ask people to log in first. This avoids the
+    // "I added it but checkout says my cart is empty" mix-up.
+    if (!user) {
+      toast("Log in to add items to your cart.");
+      navigate(`/login?next=/products/${id}`);
+      return;
+    }
+    setBusy(true);
     try {
       await addItem(Number(variantId), Number(quantity));
-      setAdded(true);
+      setAddedKey((k) => k + 1);
+      toast(`${product.name} added to your cart.`);
     } catch (e) {
       setError(e.message);
+      toast(e.message, "error");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -52,7 +68,7 @@ export default function ProductDetail() {
           <p style={{ color: "var(--ink-soft)", lineHeight: 1.6 }}>{product.description}</p>
 
           {product.variants.length > 1 && (
-            <div className="field" style={{ maxWidth: 260, marginBottom: 16 }}>
+            <div className="field" style={{ maxWidth: 300, marginBottom: 16 }}>
               <label>Variant</label>
               <select value={variantId ?? ""} onChange={(e) => setVariantId(e.target.value)}>
                 {product.variants.map((v) => (
@@ -75,16 +91,20 @@ export default function ProductDetail() {
             />
           </div>
 
-          {error && <p className="error-banner">{error}</p>}
-          {added && <p className="success-banner">Added to cart.</p>}
+          {error && <p className="error-banner" style={{ marginBottom: 14 }}>{error}</p>}
+          {addedKey > 0 && (
+            <div key={addedKey} className="added-stamp">
+              Added to cart
+            </div>
+          )}
 
-          <div style={{ display: "flex", gap: 12 }}>
+          <div className="action-row">
             <button
               className="btn btn-primary"
               onClick={handleAddToCart}
-              disabled={!variant?.in_stock}
+              disabled={!variant?.in_stock || busy}
             >
-              {variant?.in_stock ? "Add to cart" : "Out of stock"}
+              {!variant?.in_stock ? "Out of stock" : busy ? "Adding…" : "Add to cart"}
             </button>
             <button className="btn btn-outline" onClick={() => navigate("/cart")}>
               View cart

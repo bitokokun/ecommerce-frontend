@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { orders as ordersApi } from "../api.js";
+import Confetti from "../components/Confetti.jsx";
 
 export default function Orders() {
   const [list, setList] = useState([]);
@@ -15,29 +16,30 @@ export default function Orders() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="container">Loading…</div>;
+  if (loading) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
 
   return (
     <div className="container" style={{ paddingBottom: 80 }}>
+      {justPlaced && <Confetti />}
       <h1 style={{ fontFamily: "var(--display)", marginTop: 40 }}>Your orders</h1>
 
       {justPlaced && (
         <p className="success-banner" style={{ marginBottom: 20 }}>
-          Order #{justPlaced} placed successfully.
+          Order #{justPlaced} placed. Thank you!
         </p>
       )}
 
       {list.length === 0 ? (
-        <div className="empty-state">No orders yet.</div>
+        <div className="empty-state">No orders yet. Pick something from the shop.</div>
       ) : (
-        list.map((order) => (
-          <div className="order-card" key={order.id}>
+        list.map((order, i) => (
+          <div className="order-card" key={order.id} style={{ "--i": i }}>
             <div className="order-card-header">
               <span>Order #{order.id}</span>
               <span className="status-pill">{order.status}</span>
             </div>
             {order.items.map((item) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
+              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0" }}>
                 <span>
                   {item.product_name} × {item.quantity}
                 </span>
