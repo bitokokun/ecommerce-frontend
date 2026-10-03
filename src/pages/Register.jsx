@@ -6,6 +6,7 @@ export default function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [wantsToSell, setWantsToSell] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -18,8 +19,8 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      await register(form);
-      navigate("/");
+      await register({ ...form, role: wantsToSell ? "seller" : "customer" });
+      navigate(wantsToSell ? "/sell" : "/");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -54,6 +55,15 @@ export default function Register() {
             required
           />
         </div>
+        <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: "0.92rem" }}>
+          <input
+            type="checkbox"
+            checked={wantsToSell}
+            onChange={(e) => setWantsToSell(e.target.checked)}
+            style={{ width: 18, height: 18 }}
+          />
+          I want to sell on Souk too
+        </label>
         <button className="btn btn-primary" disabled={loading}>
           {loading ? "Creating…" : "Create account"}
         </button>

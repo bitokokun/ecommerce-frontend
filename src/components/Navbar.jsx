@@ -56,6 +56,11 @@ export default function Navbar() {
               Orders
             </NavLink>
           )}
+          {user && (user.role === "seller" || user.role === "admin") && (
+            <NavLink to="/sell" className={linkClass}>
+              Sell
+            </NavLink>
+          )}
           {user ? (
             <button
               onClick={() => {

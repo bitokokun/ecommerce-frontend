@@ -102,6 +102,47 @@ export const catalog = {
   },
 };
 
+export const seller = {
+  // the seller's own products, drafts included — not the public storefront list
+  mine() {
+    return api("/catalog/products/mine/");
+  },
+  createProduct(payload) {
+    return api("/catalog/products/", { method: "POST", body: payload });
+  },
+  updateProduct(id, payload) {
+    return api(`/catalog/products/${id}/`, { method: "PATCH", body: payload });
+  },
+  addVariant(productId, payload) {
+    return api(`/catalog/products/${productId}/variants/`, { method: "POST", body: payload });
+  },
+  updateVariant(productId, variantId, payload) {
+    return api(`/catalog/products/${productId}/variants/${variantId}/`, {
+      method: "PATCH",
+      body: payload,
+    });
+  },
+  deleteVariant(productId, variantId) {
+    return api(`/catalog/products/${productId}/variants/${variantId}/`, { method: "DELETE" });
+  },
+  // multipart upload: bypasses the JSON-only api() helper, but reuses its
+  // token/refresh logic so an expiring login doesn't silently break uploads
+  async uploadImage(productId, file) {
+    const form = new FormData();
+    form.append("image", file);
+    const { access } = { access: localStorage.getItem("access") };
+    const headers = access ? { Authorization: `Bearer ${access}` } : {};
+    const res = await fetch(`${BASE}/catalog/products/${productId}/images/upload/`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Upload failed.");
+    return data;
+  },
+};
+
 export const cart = {
   // auth defaults to true: this attaches the JWT when the user is logged in
   // (so the cart binds to their account), but works fine for guests too,
