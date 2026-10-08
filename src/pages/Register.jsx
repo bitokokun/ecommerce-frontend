@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import Turnstile, { TURNSTILE_SITE_KEY } from "../components/Turnstile.jsx";
 
 export default function Register() {
   const { register } = useAuth();
@@ -9,6 +10,8 @@ export default function Register() {
   const [wantsToSell, setWantsToSell] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaKey, setCaptchaKey] = useState(0); // bump to get a fresh widget
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -19,10 +22,16 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      await register({ ...form, role: wantsToSell ? "seller" : "customer" });
+      await register({
+        ...form,
+        role: wantsToSell ? "seller" : "customer",
+        captcha_token: captchaToken,
+      });
       navigate(wantsToSell ? "/sell" : "/");
     } catch (e) {
       setError(e.message);
+      setCaptchaToken("");
+      setCaptchaKey((k) => k + 1);
     } finally {
       setLoading(false);
     }
@@ -64,7 +73,11 @@ export default function Register() {
           />
           I want to sell on Souk too
         </label>
-        <button className="btn btn-primary" disabled={loading}>
+        <Turnstile key={captchaKey} onToken={setCaptchaToken} />
+        <button
+          className="btn btn-primary"
+          disabled={loading || (TURNSTILE_SITE_KEY && !captchaToken)}
+        >
           {loading ? "Creating…" : "Create account"}
         </button>
         <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)" }}>
