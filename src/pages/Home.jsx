@@ -21,9 +21,19 @@ export default function Home() {
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [category, setCategory] = useState(""); // "" = all
 
   useEffect(() => {
-    const query = search ? `?search=${encodeURIComponent(search)}` : "";
+    catalog.categories().then((d) => setCategories(d.results || d)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (category) params.set("category", category);
+    const qs = params.toString();
+    const query = qs ? `?${qs}` : "";
     setLoading(true);
     setError("");
     // the free server sleeps when idle; tell people why the first load is slow
@@ -38,7 +48,7 @@ export default function Home() {
         setLoading(false);
       });
     return () => clearTimeout(slowTimer);
-  }, [search]);
+  }, [search, category]);
 
   return (
     <>
@@ -83,6 +93,31 @@ export default function Home() {
       </div>
 
       <div className="container">
+        {categories.length > 0 && (
+          <div className="chips" role="group" aria-label="Filter by category">
+            <button
+              className={`chip ${category === "" ? "on" : ""}`}
+              onClick={() => {
+                setSearched(true);
+                setCategory("");
+              }}
+            >
+              All
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                className={`chip ${String(c.id) === String(category) ? "on" : ""}`}
+                onClick={() => {
+                  setSearched(true);
+                  setCategory(String(c.id));
+                }}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
         {error && <p className="error-banner" style={{ marginTop: 24 }}>{error}</p>}
         {slow && (
           <p className="wake-note">
@@ -101,7 +136,11 @@ export default function Home() {
           </div>
         ) : products.length === 0 ? (
           <div className="empty-state">
-            {search ? `No products match "${search}". Try a shorter word.` : "No products yet. Check back soon."}
+            {search
+              ? `No products match "${search}". Try a shorter word.`
+              : category
+              ? "Nothing in this category yet."
+              : "No products yet. Check back soon."}
           </div>
         ) : (
           <div className={`grid ${searched ? "no-intro" : ""}`}>

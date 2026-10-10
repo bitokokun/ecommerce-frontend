@@ -90,6 +90,13 @@ export const auth = {
   },
 };
 
+export const accounts = {
+  // the list behind the country dropdown (the server owns the list)
+  countries() {
+    return api("/accounts/countries/", { auth: false });
+  },
+};
+
 export const catalog = {
   list(params = "") {
     return api(`/catalog/products/${params}`, { auth: false });
@@ -124,6 +131,15 @@ export const seller = {
   },
   deleteVariant(productId, variantId) {
     return api(`/catalog/products/${productId}/variants/${variantId}/`, { method: "DELETE" });
+  },
+  // orders other people placed for this seller's products
+  received() {
+    return api("/orders/received/");
+  },
+  // how many arrived after `since` (an ISO time); powers the number on "Sell"
+  receivedCount(since = "") {
+    const q = since ? `?since=${encodeURIComponent(since)}` : "";
+    return api(`/orders/received/count/${q}`);
   },
   // multipart upload: bypasses the JSON-only api() helper, but reuses its
   // token/refresh logic so an expiring login doesn't silently break uploads

@@ -9,6 +9,7 @@ import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/Orders.jsx";
 import SellerDashboard from "./pages/SellerDashboard.jsx";
 import SellerProductForm from "./pages/SellerProductForm.jsx";
+import SellerOrders from "./pages/SellerOrders.jsx";
 import RequireSeller from "./components/RequireSeller.jsx";
 
 export default function App() {
@@ -31,6 +32,14 @@ export default function App() {
             element={
               <RequireSeller>
                 <SellerDashboard />
+              </RequireSeller>
+            }
+          />
+          <Route
+            path="/sell/orders"
+            element={
+              <RequireSeller>
+                <SellerOrders />
               </RequireSeller>
             }
           />

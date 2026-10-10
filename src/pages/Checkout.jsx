@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { orders } from "../api.js";
+import { orders, accounts } from "../api.js";
 import { useCart } from "../context/CartContext.jsx";
 
 export default function Checkout() {
   const { cart, refresh } = useCart();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
+  const [countries, setCountries] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -18,6 +19,10 @@ export default function Checkout() {
   });
   const [error, setError] = useState("");
   const [placing, setPlacing] = useState(false);
+
+  useEffect(() => {
+    accounts.countries().then(setCountries).catch(() => {});
+  }, []);
 
   useEffect(() => {
     orders.addresses.list().then((data) => {
@@ -114,11 +119,20 @@ export default function Checkout() {
           </div>
           <div className="field">
             <label>Country</label>
-            <input
+            <select
               value={form.country}
               onChange={(e) => setForm({ ...form, country: e.target.value })}
               required
-            />
+            >
+              <option value="">
+                {countries.length ? "Select a country" : "Loading countries…"}
+              </option>
+              {countries.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
           <button className="btn btn-primary">Save address</button>
         </form>

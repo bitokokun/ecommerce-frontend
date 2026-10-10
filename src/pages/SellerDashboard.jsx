@@ -30,9 +30,14 @@ export default function SellerDashboard() {
         }}
       >
         <h1 style={{ fontFamily: "var(--display)", margin: 0 }}>Your listings</h1>
-        <Link to="/sell/new" className="btn btn-saffron">
-          + New product
-        </Link>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <Link to="/sell/orders" className="btn btn-outline">
+            Orders received
+          </Link>
+          <Link to="/sell/new" className="btn btn-saffron">
+            + New product
+          </Link>
+        </div>
       </div>
       <p style={{ color: "var(--ink-soft)", marginTop: 6 }}>Selling as {user?.username}.</p>
 

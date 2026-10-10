@@ -619,3 +619,65 @@ footer { border-top: 1px solid var(--line); padding: 24px 20px; color: var(--ink
   .ribbon-track { animation: none !important; }
   .confetti { display: none; }
 }
+
+/* ---------- Category chips (shop page) ---------- */
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 18px 0 6px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, transform 0.12s;
+}
+.chip:active { transform: scale(0.96); }
+@media (hover: hover) { .chip:not(.on):hover { background: var(--ink); color: var(--paper); } }
+.chip.on { background: var(--saffron); border-color: var(--saffron); }
+
+/* ---------- Seller: new-order badge and highlighted orders ---------- */
+.nav-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--brick);
+  color: #fff;
+  font: 600 0.72rem var(--mono);
+  vertical-align: middle;
+  animation: bump 0.5s var(--ease-spring);
+}
+.order-card.is-new { border-left: 5px solid var(--saffron); }
+.new-tag {
+  margin-left: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: var(--saffron);
+  color: var(--ink);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+.ship-to {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: 3px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
