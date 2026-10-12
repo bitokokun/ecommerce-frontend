@@ -1,37 +1,44 @@
-# Souk — Storefront (React frontend)
+# Souk — storefront (React)
 
-React storefront talking to the Django backend.
+The React front end for **Souk**, a multi-vendor e-commerce marketplace.
+The full project description, design decisions and API overview are in the
+backend repo: https://github.com/bitokokun/ecommerce-project
 
-## Local setup
+**Live demo:** https://ecommerce-frontend-7q36.onrender.com
+(free hosting: the first load after a quiet period can take up to a minute)
+
+## What's in here
+
+- Shop with search, category filter chips, and product pages with variant and quantity picker
+- Cart, checkout with a country dropdown, order history
+- Register / log in with JWT (auto-refresh on expiry) and a Cloudflare Turnstile captcha
+- Seller dashboard: listings, product form with variants and photo upload, orders received
+- Animated, responsive design (mobile menu, 2-column grid on phones); animations switch off for people who prefer reduced motion
+
+## Run it locally
+
 ```bash
 npm install
 npm run dev
 ```
-Runs at http://localhost:5173, proxying `/api` to `http://localhost:8000`
-(your local Docker backend needs to be running).
 
-## Production deploy (Render Static Site)
-This is the one piece that was mid-setup when we last left off: create a
-**Static Site** on Render pointed at this repo, with:
-- **Build Command**: `npm install && npm run build`
-- **Publish Directory**: `dist`
-- **Environment Variable**: `VITE_API_URL` = `https://ecommerce-backend-quog.onrender.com/api`
-  (swap in your actual live backend URL — check the backend service's page
-  on Render if unsure)
+Opens at http://localhost:5173 and sends `/api` requests to `http://localhost:8000`
+(start the backend first, see the backend repo).
 
-`src/api.js` reads `VITE_API_URL` at build time and falls back to the local
-dev proxy path (`/api`) when it's unset, so the same code works in both
-places without edits.
+## Deploy (Render static site)
 
-## What's wired up
-- Product browsing + search (Home)
-- Product detail with variant/quantity picker
-- Cart (guest sessions AND logged-in users both work)
-- Register / Login (JWT, stored in localStorage, auto-refreshed on 401)
-- Checkout: pick or add a shipping address, place order
-- Order history
+- Build command: `npm install && npm run build`
+- Publish directory: `dist`
+- Environment variables:
+  - `VITE_API_URL` — the backend, ending in `/api`
+  - `VITE_TURNSTILE_SITE_KEY` — public Turnstile site key (optional)
 
-## Known simplifications
-- No cart-merging if a guest logs in mid-session
-- No payment step yet — checkout creates a "pending" order
-- No image upload UI — product images come from the Django admin
+## Structure
+
+```
+src/
+  api.js          all calls to the backend, with token refresh
+  context/        auth, cart and toast state
+  pages/          Home, ProductDetail, Cart, Checkout, Orders, Login, Register, Seller*
+  components/     Navbar, ProductCard, Turnstile, Confetti, RequireSeller
+```
