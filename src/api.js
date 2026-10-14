@@ -109,6 +109,17 @@ export const catalog = {
   },
 };
 
+export const recommendations = {
+  // products related to one product (works even before anyone has bought anything)
+  similar(productId, limit = 4) {
+    return api(`/recommendations/similar/${productId}/?limit=${limit}`, { auth: false });
+  },
+  // personal picks; `personalized` is false when we know nothing about the shopper yet
+  forYou(limit = 4) {
+    return api(`/recommendations/for-you/?limit=${limit}`);
+  },
+};
+
 export const seller = {
   // the seller's own products, drafts included — not the public storefront list
   mine() {

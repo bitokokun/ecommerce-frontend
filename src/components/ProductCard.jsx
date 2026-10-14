@@ -1,7 +1,8 @@
 import { useRef } from "react";
 import { Link } from "react-router-dom";
+import Placeholder from "./Placeholder.jsx";
 
-export default function ProductCard({ product, index = 0 }) {
+export default function ProductCard({ product, index = 0, note = "" }) {
   const ref = useRef(null);
 
   // gentle 3D tilt that follows the mouse (mouse only — skipped on touch screens)
@@ -35,12 +36,13 @@ export default function ProductCard({ product, index = 0 }) {
         {product.primary_image ? (
           <img src={product.primary_image} alt={product.name} loading="lazy" />
         ) : (
-          "no image"
+          <Placeholder name={product.name} />
         )}
       </div>
       <span className="stamp in-stock">In stock</span>
       <h3>{product.name}</h3>
       <div className="card-price">${product.base_price}</div>
+      {note && <div className="rec-note">{note}</div>}
     </Link>
   );
 }

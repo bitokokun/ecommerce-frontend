@@ -681,3 +681,26 @@ footer { border-top: 1px solid var(--line); padding: 24px 20px; color: var(--ink
   font-size: 0.92rem;
   line-height: 1.5;
 }
+
+/* ---------- Recommendations + placeholder tiles ---------- */
+.rec-section { margin-top: 8px; }
+.rec-section h2 {
+  font-family: var(--display);
+  font-size: 1.4rem;
+  margin: 28px 0 0;
+}
+.rec-section .grid { padding-top: 18px; padding-bottom: 20px; }
+.rec-note {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  line-height: 1.35;
+}
+.ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 600 3rem var(--display);
+}
+.product-detail-image .ph { font-size: 6rem; }

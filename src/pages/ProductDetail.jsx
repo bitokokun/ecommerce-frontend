@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { catalog } from "../api.js";
+import { catalog, recommendations } from "../api.js";
 import { useCart } from "../context/CartContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+import Placeholder from "../components/Placeholder.jsx";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -17,12 +19,21 @@ export default function ProductDetail() {
   const [error, setError] = useState("");
   const [addedKey, setAddedKey] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [similar, setSimilar] = useState([]);
 
   useEffect(() => {
     catalog.detail(id).then((data) => {
       setProduct(data);
       if (data.variants?.length) setVariantId(data.variants[0].id);
     });
+  }, [id]);
+
+  useEffect(() => {
+    setSimilar([]);
+    recommendations
+      .similar(id)
+      .then((d) => setSimilar(d.results || []))
+      .catch(() => {}); // suggestions are a bonus; never break the page over them
   }, [id]);
 
   if (!product) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
@@ -58,7 +69,7 @@ export default function ProductDetail() {
           {product.images?.[0] ? (
             <img src={product.images[0].image} alt={product.name} />
           ) : (
-            "no image"
+            <Placeholder name={product.name} />
           )}
         </div>
         <div>
@@ -112,6 +123,17 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {similar.length > 0 && (
+        <section className="rec-section">
+          <h2>You might also like</h2>
+          <div className="grid no-intro">
+            {similar.map((p, i) => (
+              <ProductCard key={p.id} product={p} index={i} note={p.reason} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

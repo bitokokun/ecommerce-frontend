@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { catalog } from "../api.js";
+import { catalog, recommendations } from "../api.js";
 import ProductCard from "../components/ProductCard.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const HEADLINE = "Everything the stall has, in one aisle.".split(" ");
 const RIBBON = [
@@ -21,8 +22,22 @@ export default function Home() {
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState("");
   const [searched, setSearched] = useState(false);
+  const { user } = useAuth();
+  const [picks, setPicks] = useState([]);
   const [categories, setCategories] = useState([]);
   const [category, setCategory] = useState(""); // "" = all
+
+  // personal picks, only for people we know something about (a purchase or a cart)
+  useEffect(() => {
+    if (!user) {
+      setPicks([]);
+      return;
+    }
+    recommendations
+      .forYou()
+      .then((d) => setPicks(d.personalized ? d.results : []))
+      .catch(() => setPicks([]));
+  }, [user?.id]);
 
   useEffect(() => {
     catalog.categories().then((d) => setCategories(d.results || d)).catch(() => {});
@@ -117,6 +132,17 @@ export default function Home() {
               </button>
             ))}
           </div>
+        )}
+        {picks.length > 0 && !search && !category && (
+          <section className="rec-section">
+            <h2>Picked for you</h2>
+            <div className="grid no-intro">
+              {picks.map((p, i) => (
+                <ProductCard key={p.id} product={p} index={i} note={p.reason} />
+              ))}
+            </div>
+            <h2>All products</h2>
+          </section>
         )}
         {error && <p className="error-banner" style={{ marginTop: 24 }}>{error}</p>}
         {slow && (
