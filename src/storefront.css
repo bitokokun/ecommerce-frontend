@@ -449,10 +449,6 @@
 }
 .pcard-note { display: block; margin-top: 8px; font-size: 0.78rem; color: var(--ink-soft); }
 .pcard-wish { position: absolute; top: 18px; right: 18px; z-index: 2; }
-.pcard-skel { pointer-events: none; animation: none; }
-.pcard-skel-img { aspect-ratio: 4 / 4.3; border-radius: 14px; }
-.pcard-skel .line { height: 14px; margin: 14px 8px 0; }
-.pcard-skel .line.short { width: 40%; margin-bottom: 10px; }
 
 @media (max-width: 560px) {
   .pgrid, .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

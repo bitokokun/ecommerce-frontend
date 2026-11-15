@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
 import Turnstile, { TURNSTILE_SITE_KEY } from "../components/Turnstile.jsx";
 
 export default function Register() {
@@ -38,49 +39,65 @@ export default function Register() {
   }
 
   return (
-    <div className="container">
-      <h1 style={{ fontFamily: "var(--display)", marginTop: 40 }}>Create an account</h1>
+    <div className="container auth-page">
+      <header className="page-head">
+        <h1>Create an account</h1>
+        <p className="muted">It takes a minute. You can start shopping straight away.</p>
+      </header>
       <form className="form" onSubmit={handleSubmit}>
-        {error && <p className="error-banner">{error}</p>}
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
         <div className="field">
-          <label>Username</label>
-          <input value={form.username} onChange={(e) => update("username", e.target.value)} required />
+          <label htmlFor="reg-username">Username</label>
+          <input
+            id="reg-username"
+            value={form.username}
+            autoComplete="username"
+            autoCapitalize="none"
+            onChange={(e) => update("username", e.target.value)}
+            required
+          />
         </div>
         <div className="field">
-          <label>Email</label>
+          <label htmlFor="reg-email">Email</label>
           <input
+            id="reg-email"
             type="email"
             value={form.email}
+            autoComplete="email"
             onChange={(e) => update("email", e.target.value)}
             required
           />
         </div>
         <div className="field">
-          <label>Password</label>
+          <label htmlFor="reg-password">Password</label>
           <input
+            id="reg-password"
             type="password"
             value={form.password}
+            autoComplete="new-password"
             onChange={(e) => update("password", e.target.value)}
             required
           />
         </div>
-        <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: "0.92rem" }}>
-          <input
-            type="checkbox"
-            checked={wantsToSell}
-            onChange={(e) => setWantsToSell(e.target.checked)}
-            style={{ width: 18, height: 18 }}
-          />
+        <label className="check">
+          <input type="checkbox" checked={wantsToSell} onChange={(e) => setWantsToSell(e.target.checked)} />
           I want to sell on Souk too
         </label>
         <Turnstile key={captchaKey} onToken={setCaptchaToken} />
-        <button
-          className="btn btn-primary"
-          disabled={loading || (TURNSTILE_SITE_KEY && !captchaToken)}
+        <LoadingButton
+          type="submit"
+          className="btn btn-primary btn-block"
+          loading={loading}
+          loadingText="Creating account…"
+          disabled={Boolean(TURNSTILE_SITE_KEY && !captchaToken)}
         >
-          {loading ? "Creating…" : "Create account"}
-        </button>
-        <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)" }}>
+          Create account
+        </LoadingButton>
+        <p className="form-note">
           Already have one? <Link to="/login">Log in</Link>
         </p>
       </form>

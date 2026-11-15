@@ -21,9 +21,9 @@ export default function OrderCard({ order, onChange }) {
     setBusy(true);
     try {
       onChange?.(await ordersApi.cancel(order.id));
-      toast("Order cancelled");
+      toast.success("Order cancelled");
     } catch (e) {
-      toast(e.message, "error");
+      toast.error(e.message);
     } finally {
       setBusy(false);
     }

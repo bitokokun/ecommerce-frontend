@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
 
 export default function Login() {
   const { login } = useAuth();
@@ -27,27 +28,43 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
-      <h1 style={{ fontFamily: "var(--display)", marginTop: 40 }}>Log in</h1>
+    <div className="container auth-page">
+      <header className="page-head">
+        <h1>Log in</h1>
+        <p className="muted">Welcome back. Pick up where you left off.</p>
+      </header>
       <form className="form" onSubmit={handleSubmit}>
-        {error && <p className="error-banner">{error}</p>}
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
+          </p>
+        )}
         <div className="field">
-          <label>Username</label>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+          <label htmlFor="login-username">Username</label>
+          <input
+            id="login-username"
+            value={username}
+            autoComplete="username"
+            autoCapitalize="none"
+            onChange={(e) => setUsername(e.target.value)}
+            required
+          />
         </div>
         <div className="field">
-          <label>Password</label>
+          <label htmlFor="login-password">Password</label>
           <input
+            id="login-password"
             type="password"
             value={password}
+            autoComplete="current-password"
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
-        <button className="btn btn-primary" disabled={loading}>
-          {loading ? "Logging in…" : "Log in"}
-        </button>
-        <p style={{ fontSize: "0.9rem", color: "var(--ink-soft)" }}>
+        <LoadingButton type="submit" className="btn btn-primary btn-block" loading={loading} loadingText="Logging in…">
+          Log in
+        </LoadingButton>
+        <p className="form-note">
           No account? <Link to="/register">Register</Link>
         </p>
       </form>

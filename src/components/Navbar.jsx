@@ -45,7 +45,7 @@ export default function Navbar() {
       .then(({ count }) => {
         if (cancelled) return;
         if (lastOrderCount.current !== null && count > lastOrderCount.current) {
-          toast(
+          toast.success(
             count - lastOrderCount.current === 1
               ? "You have a new order!"
               : `You have ${count - lastOrderCount.current} new orders!`

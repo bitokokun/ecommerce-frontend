@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { seller } from "../api.js";
 import { useToast } from "../context/ToastContext.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
+import { OrdersSkeleton } from "../components/Skeletons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSeen, setSeen } from "../salesSeen.js";
 
@@ -22,9 +25,9 @@ function FulfilForm({ order, onUpdated }) {
     setBusy(true);
     try {
       onUpdated(await seller.fulfil(order.id, { status, carrier, tracking_number: tracking }));
-      toast(status === "shipped" ? "Marked as shipped" : "Marked as delivered");
+      toast.success(status === "shipped" ? "Marked as shipped" : "Marked as delivered");
     } catch (e) {
-      toast(e.message, "error");
+      toast.error(e.message);
     } finally {
       setBusy(false);
     }
@@ -39,8 +42,16 @@ function FulfilForm({ order, onUpdated }) {
         </div>
       )}
       <div className="action-row">
-        {!allShipped && <button className="btn btn-primary" disabled={busy} onClick={() => send("shipped")}>Mark shipped</button>}
-        {allShipped && <button className="btn btn-saffron" disabled={busy} onClick={() => send("delivered")}>Mark delivered</button>}
+        {!allShipped && (
+          <LoadingButton className="btn btn-primary" loading={busy} loadingText="Saving…" onClick={() => send("shipped")}>
+            Mark shipped
+          </LoadingButton>
+        )}
+        {allShipped && (
+          <LoadingButton className="btn btn-saffron" loading={busy} loadingText="Saving…" onClick={() => send("delivered")}>
+            Mark delivered
+          </LoadingButton>
+        )}
       </div>
     </div>
   );
@@ -69,23 +80,26 @@ export default function SellerOrders() {
   const isNew = (o) => !seenBefore || new Date(o.created_at) > new Date(seenBefore);
 
   return (
-    <div className="container" style={{ paddingBottom: 80, maxWidth: 760 }}>
-      <Link to="/sell" className="sku-line" style={{ display: "inline-block", marginTop: 32 }}>
+    <div className="container seller-page seller-orders">
+      <Link to="/sell" className="back-link">
         ← Your listings
       </Link>
-      <h1 style={{ fontFamily: "var(--display)", margin: "8px 0 4px" }}>Orders received</h1>
-      <p style={{ color: "var(--ink-soft)", marginTop: 0 }}>
-        Orders that include your products, with where to ship them.
-      </p>
+      <header className="page-head">
+        <h1>Orders received</h1>
+        <p className="muted">Orders that include your products, with where to ship them.</p>
+      </header>
 
-      {error && <p className="error-banner">{error}</p>}
       {loading ? (
-        <p style={{ padding: "30px 0" }}>Loading…</p>
+        <OrdersSkeleton />
+      ) : error ? (
+        <EmptyState icon="alert" title="We couldn't load your orders" text={error} action={{ label: "Back to listings", to: "/sell" }} />
       ) : orders.length === 0 ? (
-        <div className="empty-state">
-          No orders yet. When someone buys one of your products it shows up here, and a number
-          appears next to “Sell” at the top.
-        </div>
+        <EmptyState
+          icon="orders"
+          title="No orders yet"
+          text="When someone buys one of your products it shows up here, and a number appears next to Sell at the top."
+          action={{ label: "View your listings", to: "/sell" }}
+        />
       ) : (
         orders.map((o, i) => (
           <div className={`order-card ${isNew(o) ? "is-new" : ""}`} key={o.id} style={{ "--i": i }}>
@@ -94,22 +108,17 @@ export default function SellerOrders() {
                 Order #{o.id}
                 {isNew(o) && <b className="new-tag">NEW</b>}
               </span>
-              <span className="status-pill">{o.status}</span>
+              <span className={`status-pill status-${o.status}`}>{o.status}</span>
             </div>
-            <div className="sku-line" style={{ marginBottom: 8 }}>
-              {new Date(o.created_at).toLocaleString()}
-            </div>
+            <div className="sku-line order-date">{new Date(o.created_at).toLocaleString()}</div>
 
             {o.items.map((it) => (
-              <div
-                key={it.id}
-                style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0" }}
-              >
+              <div key={it.id} className="order-line">
                 <span>
                   {it.product_name} × {it.quantity}
                   <span className="sku-line"> {it.sku}</span>
                 </span>
-                <span style={{ fontFamily: "var(--mono)" }}>${it.subtotal}</span>
+                <span className="mono">${it.subtotal}</span>
               </div>
             ))}
 
@@ -129,18 +138,9 @@ export default function SellerOrders() {
 
             <FulfilForm order={o} onUpdated={(n) => setOrders((l) => l.map((x) => (x.id === n.id ? n : x)))} />
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: 12,
-                paddingTop: 10,
-                borderTop: "1px solid var(--line)",
-                fontWeight: 600,
-              }}
-            >
+            <div className="order-total">
               <span>Your items total</span>
-              <span style={{ fontFamily: "var(--mono)" }}>${o.seller_total}</span>
+              <span className="mono">${o.seller_total}</span>
             </div>
           </div>
         ))

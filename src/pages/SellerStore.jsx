@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { seller } from "../api.js";
 import { useToast } from "../context/ToastContext.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
+import { ListSkeleton } from "../components/Skeletons.jsx";
 
 export default function SellerStore() {
   const toast = useToast();
@@ -38,7 +40,7 @@ export default function SellerStore() {
     setErrors({});
     try {
       setStore(await seller.updateStore(form));
-      toast("Store saved");
+      toast.success("Store saved");
     } catch (err) {
       setErrors(err.data && typeof err.data === "object" ? err.data : { detail: err.message });
     } finally {
@@ -52,14 +54,20 @@ export default function SellerStore() {
     if (!file) return;
     try {
       setStore(await seller.uploadLogo(file));
-      toast("Logo updated");
+      toast.success("Logo updated");
     } catch (err) {
-      toast(err.message, "error");
+      toast.error(err.message);
     }
   }
 
   if (loadError) return <div className="container"><p className="error-banner" style={{ marginTop: 40 }}>{loadError}</p></div>;
-  if (!form) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
+  if (!form) {
+    return (
+      <div className="container seller-page">
+        <ListSkeleton rows={4} label="Loading your store" />
+      </div>
+    );
+  }
 
   const field = (k, label, props = {}) => (
     <label className="field">
@@ -116,7 +124,7 @@ export default function SellerStore() {
           <div className="photo-actions">
             <button className="btn btn-outline" onClick={() => fileRef.current?.click()}>{store.logo_url ? "Replace logo" : "Upload logo"}</button>
             {store.logo_url && (
-              <button className="btn-danger-link" onClick={async () => { try { setStore(await seller.removeLogo()); } catch (e) { toast(e.message, "error"); } }}>Remove logo</button>
+              <button className="btn-danger-link" onClick={async () => { try { setStore(await seller.removeLogo()); } catch (e) { toast.error(e.message); } }}>Remove logo</button>
             )}
           </div>
           <small className="muted">JPEG, PNG or WebP, up to 2MB.</small>
@@ -131,7 +139,7 @@ export default function SellerStore() {
           {field("contact_email", "Contact email", { type: "email" })}
           {field("shipping_note", "Shipping note", { maxLength: 255, placeholder: "Ships within 2 business days" })}
           {field("return_policy", "Return policy", { maxLength: 500 })}
-          <button className="btn btn-primary" disabled={busy}>{busy ? "Saving…" : "Save store"}</button>
+          <LoadingButton type="submit" className="btn btn-primary" loading={busy} loadingText="Saving…">Save store</LoadingButton>
         </form>
       </div>
     </div>

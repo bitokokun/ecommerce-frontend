@@ -36,14 +36,14 @@ export function WishlistProvider({ children }) {
       });
       try {
         await (had ? wishApi.remove(productId) : wishApi.add(productId));
-        toast(had ? "Removed from wishlist" : "Saved to wishlist");
+        toast.success(had ? "Removed from wishlist" : "Saved to wishlist");
       } catch (e) {
         setIds((s) => {
           const n = new Set(s);
           had ? n.add(productId) : n.delete(productId);
           return n;
         });
-        toast(e.message, "error");
+        toast.error(e.message);
       }
       return true;
     },

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { catalog, seller } from "../api.js";
 import { useToast } from "../context/ToastContext.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
+import { ListSkeleton } from "../components/Skeletons.jsx";
 import { describe } from "../variants.js";
 
 export default function SellerProductForm() {
@@ -51,11 +53,11 @@ export default function SellerProductForm() {
     try {
       if (isNew) {
         const created = await seller.createProduct(form);
-        toast("Product created. Now add at least one variant so it's purchasable.");
+        toast.success("Product created. Now add at least one variant so it's purchasable.");
         navigate(`/sell/${created.id}`, { replace: true });
       } else {
         await seller.updateProduct(id, form);
-        toast("Product updated.");
+        toast.success("Product updated.");
         const fresh = await catalog.detail(id);
         setProduct(fresh);
       }
@@ -66,13 +68,19 @@ export default function SellerProductForm() {
     }
   }
 
-  if (!isNew && !product) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
+  if (!isNew && !product) {
+    return (
+      <div className="container seller-page seller-form">
+        <ListSkeleton rows={4} label="Loading product" />
+      </div>
+    );
+  }
 
   return (
-    <div className="container" style={{ maxWidth: 640, paddingBottom: 80 }}>
-      <h1 style={{ fontFamily: "var(--display)", marginTop: 40 }}>
-        {isNew ? "New product" : `Edit: ${product.name}`}
-      </h1>
+    <div className="container seller-page seller-form">
+      <header className="page-head">
+        <h1>{isNew ? "New product" : `Edit: ${product.name}`}</h1>
+      </header>
 
       <form className="form" style={{ maxWidth: "100%" }} onSubmit={handleSave}>
         {error && <p className="error-banner">{error}</p>}
@@ -118,9 +126,9 @@ export default function SellerProductForm() {
             <option value="archived">Archived</option>
           </select>
         </div>
-        <button className="btn btn-primary" disabled={saving}>
+        <LoadingButton type="submit" className="btn btn-primary" loading={saving} loadingText="Saving…">
           {saving ? "Saving…" : isNew ? "Create product" : "Save changes"}
-        </button>
+        </LoadingButton>
       </form>
 
       {!isNew && <VariantManager productId={id} product={product} onChange={setProduct} />}
@@ -168,9 +176,9 @@ function VariantManager({ productId, product, onChange }) {
       setSize("");
       setSku("");
       setStock(1);
-      toast("Variant added.");
+      toast.success("Variant added.");
     } catch (e2) {
-      toast(e2.message, "error");
+      toast.error(e2.message);
     } finally {
       setBusy(false);
     }
@@ -181,7 +189,7 @@ function VariantManager({ productId, product, onChange }) {
       await seller.updateVariant(productId, variantId, { stock: Number(newStock) });
       await refresh();
     } catch (e2) {
-      toast(e2.message, "error");
+      toast.error(e2.message);
     }
   }
 
@@ -189,26 +197,26 @@ function VariantManager({ productId, product, onChange }) {
     try {
       await seller.deleteVariant(productId, variantId);
       await refresh();
-      toast("Variant removed.");
+      toast.success("Variant removed.");
     } catch (e2) {
-      toast(e2.message, "error");
+      toast.error(e2.message);
     }
   }
 
   return (
-    <section style={{ marginTop: 40 }}>
-      <h2 style={{ fontFamily: "var(--display)", fontSize: "1.3rem" }}>Colors, sizes & stock</h2>
-      <p style={{ color: "var(--ink-soft)", fontSize: "0.9rem" }}>
+    <section className="form-section">
+      <h2 className="section-heading">Colors, sizes & stock</h2>
+      <p className="muted small">
         Add one row for each version you sell, for example Red / 42. Shoppers pick from buttons. A
         product needs at least one row before it can be bought. No colors or sizes? Leave both
         boxes empty.
       </p>
 
       {product.variants.length === 0 ? (
-        <p className="error-banner">Nothing added yet. Add the first one below.</p>
+        <p className="error-banner" role="alert">Nothing added yet. Add the first one below.</p>
       ) : (
         product.variants.map((v) => (
-          <div key={v.id} className="cart-row" style={{ gridTemplateColumns: "1fr auto auto" }}>
+          <div key={v.id} className="variant-row">
             <div>
               <strong>{describe(v.attributes)}</strong>
               <div className="sku-line">{v.sku}</div>
@@ -221,7 +229,7 @@ function VariantManager({ productId, product, onChange }) {
               defaultValue={v.stock}
               onBlur={(e) => updateStock(v.id, e.target.value)}
             />
-            <button className="btn-danger-link" onClick={() => removeVariant(v.id)}>
+            <button type="button" className="btn-danger-link" onClick={() => removeVariant(v.id)}>
               Remove
             </button>
           </div>
@@ -245,9 +253,9 @@ function VariantManager({ productId, product, onChange }) {
           <label>Code (optional)</label>
           <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="made for you if empty" />
         </div>
-        <button className="btn btn-outline" disabled={busy}>
-          {busy ? "Adding…" : "Add"}
-        </button>
+        <LoadingButton type="submit" className="btn btn-outline" loading={busy} loadingText="Adding…">
+          Add
+        </LoadingButton>
       </form>
     </section>
   );
@@ -265,9 +273,9 @@ function ImageManager({ productId, product, onChange }) {
       await seller.uploadImage(productId, file);
       const fresh = await catalog.detail(productId);
       onChange(fresh);
-      toast("Image uploaded.");
+      toast.success("Image uploaded.");
     } catch (e2) {
-      toast(e2.message, "error");
+      toast.error(e2.message);
     } finally {
       setBusy(false);
       e.target.value = "";
@@ -275,8 +283,8 @@ function ImageManager({ productId, product, onChange }) {
   }
 
   return (
-    <section style={{ marginTop: 40 }}>
-      <h2 style={{ fontFamily: "var(--display)", fontSize: "1.3rem" }}>Photos</h2>
+    <section className="form-section">
+      <h2 className="section-heading">Photos</h2>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "14px 0" }}>
         {product.images.map((img) => (
           <div key={img.id} className="card-image" style={{ width: 110, height: 110 }}>

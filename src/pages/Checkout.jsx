@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { orders, accounts } from "../api.js";
 import { useCart } from "../context/CartContext.jsx";
+import { useToast } from "../context/ToastContext.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
+import { Skeleton } from "../components/Skeletons.jsx";
 
 function newAttemptKey() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -9,9 +13,12 @@ function newAttemptKey() {
 }
 
 export default function Checkout() {
-  const { cart, refresh } = useCart();
+  const { cart, loading: cartLoading, refresh } = useCart();
+  const toast = useToast();
   const navigate = useNavigate();
   const [addresses, setAddresses] = useState([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [savingAddress, setSavingAddress] = useState(false);
   const [countries, setCountries] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -35,24 +42,42 @@ export default function Checkout() {
   }, []);
 
   useEffect(() => {
-    orders.addresses.list().then((data) => {
-      const list = data.results || data;
-      setAddresses(list);
-      if (list.length) setSelectedId(list[0].id);
-      else setShowForm(true);
-    });
+    let cancelled = false;
+    orders.addresses
+      .list()
+      .then((data) => {
+        if (cancelled) return;
+        const list = data.results || data;
+        setAddresses(list);
+        const preferred = list.find((a) => a.is_default) || list[0];
+        if (preferred) setSelectedId(preferred.id);
+        else setShowForm(true);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setAddressesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleSaveAddress(e) {
     e.preventDefault();
     setError("");
+    setSavingAddress(true);
     try {
       const created = await orders.addresses.create(form);
       setAddresses((a) => [...a, created]);
       setSelectedId(created.id);
       setShowForm(false);
+      toast.success("Address saved");
     } catch (e) {
       setError(e.message);
+    } finally {
+      setSavingAddress(false);
     }
   }
 
@@ -72,100 +97,128 @@ export default function Checkout() {
     }
   }
 
+  if (!cartLoading && !cart.items?.length && !placing) {
+    return (
+      <div className="container">
+        <EmptyState
+          icon="cart"
+          title="Nothing to check out"
+          text="Your cart is empty. Add something first, then come back here."
+          action={{ label: "Continue shopping", to: "/" }}
+        />
+      </div>
+    );
+  }
+
+  const field = (key, label, props = {}) => (
+    <div className="field">
+      <label htmlFor={`addr-${key}`}>{label}</label>
+      <input
+        id={`addr-${key}`}
+        value={form[key]}
+        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+        required
+        {...props}
+      />
+    </div>
+  );
+
   return (
-    <div className="container" style={{ maxWidth: 560, paddingBottom: 80 }}>
-      <h1 style={{ fontFamily: "var(--display)", marginTop: 40 }}>Checkout</h1>
+    <div className="container checkout-page">
+      <header className="page-head">
+        <h1>Checkout</h1>
+      </header>
 
-      <h3>Ship to</h3>
-      {addresses.map((a) => (
-        <label key={a.id} style={{ display: "flex", gap: 10, alignItems: "start", marginBottom: 10 }}>
-          <input
-            type="radio"
-            name="address"
-            checked={selectedId === a.id}
-            onChange={() => setSelectedId(a.id)}
-          />
-          <span>
-            {a.full_name} — {a.line1}, {a.city}, {a.postal_code}, {a.country}
-          </span>
-        </label>
-      ))}
+      <section aria-labelledby="ship-heading">
+        <h2 id="ship-heading" className="section-heading">
+          Ship to
+        </h2>
 
-      <button className="btn btn-outline" style={{ marginTop: 8 }} onClick={() => setShowForm((s) => !s)}>
-        {showForm ? "Cancel" : "Add new address"}
-      </button>
+        {addressesLoading ? (
+          <div className="address-options" role="status" aria-busy="true">
+            <span className="sr-only">Loading your addresses</span>
+            <Skeleton className="address-skel" />
+            <Skeleton className="address-skel" />
+          </div>
+        ) : (
+          <div className="address-options" role="radiogroup" aria-labelledby="ship-heading">
+            {addresses.map((a) => (
+              <label key={a.id} className={`address-option${selectedId === a.id ? " selected" : ""}`}>
+                <input
+                  type="radio"
+                  name="address"
+                  checked={selectedId === a.id}
+                  onChange={() => setSelectedId(a.id)}
+                />
+                <span>
+                  <strong>{a.full_name}</strong>
+                  <span className="address-lines">
+                    {a.line1}, {a.city}, {a.postal_code}, {a.country}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
 
-      {showForm && (
-        <form className="form" onSubmit={handleSaveAddress}>
-          <div className="field">
-            <label>Full name</label>
-            <input
-              value={form.full_name}
-              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Address line</label>
-            <input
-              value={form.line1}
-              onChange={(e) => setForm({ ...form, line1: e.target.value })}
-              required
-            />
-          </div>
-          <div className="field">
-            <label>City</label>
-            <input
-              value={form.city}
-              onChange={(e) => setForm({ ...form, city: e.target.value })}
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Postal code</label>
-            <input
-              value={form.postal_code}
-              onChange={(e) => setForm({ ...form, postal_code: e.target.value })}
-              required
-            />
-          </div>
-          <div className="field">
-            <label>Country</label>
-            <select
-              value={form.country}
-              onChange={(e) => setForm({ ...form, country: e.target.value })}
-              required
-            >
-              <option value="">
-                {countries.length ? "Select a country" : "Loading countries…"}
-              </option>
-              {countries.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button className="btn btn-primary">Save address</button>
-        </form>
-      )}
+        {!addressesLoading && (
+          <button type="button" className="btn btn-outline" onClick={() => setShowForm((v) => !v)}>
+            {showForm ? "Cancel" : "Add new address"}
+          </button>
+        )}
 
-      <div className="cart-summary" style={{ marginTop: 32 }}>
+        {showForm && (
+          <form className="form address-form" onSubmit={handleSaveAddress}>
+            {field("full_name", "Full name", { autoComplete: "name" })}
+            {field("line1", "Address line", { autoComplete: "address-line1" })}
+            <div className="form-row">
+              {field("city", "City", { autoComplete: "address-level2" })}
+              {field("postal_code", "Postal code", { autoComplete: "postal-code" })}
+            </div>
+            <div className="field">
+              <label htmlFor="addr-country">Country</label>
+              <select
+                id="addr-country"
+                value={form.country}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+                required
+              >
+                <option value="">{countries.length ? "Select a country" : "Loading countries…"}</option>
+                {countries.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <LoadingButton type="submit" className="btn btn-primary" loading={savingAddress} loadingText="Saving…">
+              Save address
+            </LoadingButton>
+          </form>
+        )}
+      </section>
+
+      <div className="cart-summary checkout-total">
         <span>Total</span>
         <span>${cart.total}</span>
       </div>
 
-      {error && <p className="error-banner" style={{ marginTop: 16 }}>{error}</p>}
+      {error && (
+        <p className="error-banner" role="alert">
+          {error}
+        </p>
+      )}
 
-      <button
-        className="btn btn-saffron"
-        style={{ marginTop: 20, width: "100%" }}
-        disabled={!selectedId || placing}
+      <LoadingButton
+        className="btn btn-saffron btn-block"
+        disabled={!selectedId}
+        loading={placing}
+        loadingText="Placing order…"
         onClick={handlePlaceOrder}
       >
-        {placing ? "Placing order…" : "Place order"}
-      </button>
-      <p style={{ fontSize: "0.8rem", color: "var(--ink-soft)", marginTop: 10 }}>
+        Place order
+      </LoadingButton>
+      <p className="form-note">
         Payment integration isn't wired up yet — this creates a pending order for now.
       </p>
     </div>

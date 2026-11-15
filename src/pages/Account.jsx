@@ -5,7 +5,9 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import Avatar from "../components/Avatar.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import OrderCard from "../components/OrderCard.jsx";
+import { ListSkeleton, OrdersSkeleton, ProductGridSkeleton } from "../components/Skeletons.jsx";
 
 const TABS = [
   ["overview", "Overview"],
@@ -22,7 +24,13 @@ export default function Account() {
   const { tab = "overview" } = useParams();
   const navigate = useNavigate();
 
-  if (loading) return <div className="container" style={{ padding: "40px 20px" }}>Loading…</div>;
+  if (loading) {
+    return (
+      <div className="container account">
+        <ListSkeleton rows={3} label="Loading your account" />
+      </div>
+    );
+  }
   if (!user) return <Navigate to="/login?next=/account" replace />;
   if (!TABS.some(([k]) => k === tab)) return <Navigate to="/account" replace />;
 
@@ -133,7 +141,7 @@ function ProfileTab() {
     setErrors({});
     try {
       setUser(await profileApi.update(form));
-      toast("Profile saved");
+      toast.success("Profile saved");
     } catch (err) {
       setErrors(err.data && typeof err.data === "object" ? err.data : { detail: err.message });
     } finally {
@@ -145,13 +153,13 @@ function ProfileTab() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return toast("Choose an image under 2MB", "error");
+    if (file.size > 2 * 1024 * 1024) return toast.error("Choose an image under 2MB");
     setPhotoBusy(true);
     try {
       setUser(await profileApi.uploadAvatar(file));
-      toast("Profile picture updated");
+      toast.success("Profile picture updated");
     } catch (err) {
-      toast(err.message, "error");
+      toast.error(err.message);
     } finally {
       setPhotoBusy(false);
     }
@@ -161,9 +169,9 @@ function ProfileTab() {
     setPhotoBusy(true);
     try {
       setUser(await profileApi.removeAvatar());
-      toast("Profile picture removed");
+      toast.success("Profile picture removed");
     } catch (err) {
-      toast(err.message, "error");
+      toast.error(err.message);
     } finally {
       setPhotoBusy(false);
     }
@@ -236,10 +244,10 @@ function AddressesTab() {
     if (!window.confirm(`Delete the address for ${a.full_name}?`)) return;
     try {
       await ordersApi.addresses.remove(a.id);
-      toast("Address deleted");
+      toast.success("Address deleted");
       load();
     } catch (e) {
-      toast(e.message, "error");
+      toast.error(e.message);
     }
   }
 
@@ -248,7 +256,7 @@ function AddressesTab() {
       await ordersApi.addresses.update(a.id, { is_default: true });
       load();
     } catch (e) {
-      toast(e.message, "error");
+      toast.error(e.message);
     }
   }
 
@@ -274,9 +282,15 @@ function AddressesTab() {
         </button>
       </div>
       {!list ? (
-        <p>Loading…</p>
+        <ListSkeleton rows={2} label="Loading your addresses" />
       ) : list.length === 0 ? (
-        <div className="empty-state">No addresses yet. Add one to check out faster.</div>
+        <EmptyState
+          compact
+          icon="store"
+          title="No saved addresses"
+          text="Save an address to check out faster next time."
+          action={{ label: "Add address", onClick: () => setEditing("new") }}
+        />
       ) : (
         <div className="address-grid">
           {list.map((a) => (
@@ -322,7 +336,7 @@ function AddressForm({ initial, countries, onDone }) {
     delete payload.user;
     try {
       form.id ? await ordersApi.addresses.update(form.id, payload) : await ordersApi.addresses.create(payload);
-      toast("Address saved");
+      toast.success("Address saved");
       onDone(true);
     } catch (err) {
       setErrors(err.data && typeof err.data === "object" ? err.data : { detail: err.message });
@@ -381,13 +395,17 @@ function OrdersTab() {
   useEffect(() => {
     ordersApi.list().then((d) => setList(d.results || d)).catch((e) => setError(e.message));
   }, []);
-  if (error) return <p className="error-banner">{error}</p>;
-  if (!list) return <p>Loading…</p>;
+  if (error) return <p className="error-banner" role="alert">{error}</p>;
+  if (!list) return <OrdersSkeleton />;
   if (!list.length)
     return (
-      <div className="empty-state">
-        No orders yet. <Link to="/">Start shopping.</Link>
-      </div>
+      <EmptyState
+        compact
+        icon="orders"
+        title="No orders yet"
+        text="When you place an order, you can follow it here from checkout to delivery."
+        action={{ label: "Start shopping", to: "/" }}
+      />
     );
   return list.map((o) => (
     <OrderCard key={o.id} order={o} onChange={(n) => setList((l) => l.map((x) => (x.id === n.id ? n : x)))} />
@@ -400,16 +418,20 @@ function WishlistTab() {
   useEffect(() => {
     wishApi.list().then(setItems).catch((e) => setError(e.message));
   }, []);
-  if (error) return <p className="error-banner">{error}</p>;
-  if (!items) return <p>Loading…</p>;
+  if (error) return <p className="error-banner" role="alert">{error}</p>;
+  if (!items) return <ProductGridSkeleton count={4} />;
   if (!items.length)
     return (
-      <div className="empty-state">
-        Nothing saved yet. Tap the heart on any product to keep it here. <Link to="/">Browse the shop.</Link>
-      </div>
+      <EmptyState
+        compact
+        icon="heart"
+        title="Nothing saved yet"
+        text="Tap the heart on any product to keep it here for later."
+        action={{ label: "Browse the shop", to: "/" }}
+      />
     );
   return (
-    <div className="grid">
+    <div className="pgrid">
       {items.map((p, i) => (
         <ProductCard key={p.id} product={p} index={i} />
       ))}
@@ -434,7 +456,7 @@ function SecurityTab() {
     try {
       await profileApi.changePassword(pw.current, pw.next);
       logout();
-      toast("Password updated. Please sign in again.");
+      toast.success("Password updated. Please sign in again.");
       navigate("/login");
     } catch (err) {
       setPwError(err.message);
@@ -449,7 +471,7 @@ function SecurityTab() {
     try {
       await profileApi.deleteAccount(del.password, del.confirmation);
       logout();
-      toast("Your account has been deleted");
+      toast.success("Your account has been deleted");
       navigate("/");
     } catch (err) {
       setDel((d) => ({ ...d, error: err.message }));
@@ -510,9 +532,9 @@ function PreferencesTab() {
     setBusyKey(key);
     try {
       setUser(await profileApi.update({ [key]: !user[key] }));
-      toast("Preference saved");
+      toast.success("Preference saved");
     } catch (e) {
-      toast(e.message, "error");
+      toast.error(e.message);
     } finally {
       setBusyKey("");
     }

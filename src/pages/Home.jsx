@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { catalog, recommendations } from "../api.js";
+import EmptyState from "../components/EmptyState.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import { ProductGridSkeleton } from "../components/Skeletons.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const SORTS = [
@@ -29,6 +31,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [everything, setEverything] = useState([]);
   const [search, setSearch] = useState("");
+  const [term, setTerm] = useState("");
   const [category, setCategory] = useState("");
   const [ordering, setOrdering] = useState("-created_at");
   const [categories, setCategories] = useState([]);
@@ -36,6 +39,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [slow, setSlow] = useState(false);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
   const shopRef = useRef(null);
 
   useEffect(() => {
@@ -54,29 +58,43 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => setTerm(search.trim()), 280);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    let cancelled = false;
     const params = new URLSearchParams();
-    if (search) params.set("search", search);
+    if (term) params.set("search", term);
     if (category) params.set("category", category);
     if (ordering !== "-created_at") params.set("ordering", ordering);
     const qs = params.toString();
     setLoading(true);
     setError("");
+    setSlow(false);
     const slowTimer = setTimeout(() => setSlow(true), 3500);
     catalog
       .list(qs ? `?${qs}` : "")
       .then((data) => {
+        if (cancelled) return;
         const list = data.results || data;
         setProducts(list);
-        if (!search && !category && ordering === "-created_at") setEverything(list);
+        if (!term && !category && ordering === "-created_at") setEverything(list);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
       .finally(() => {
         clearTimeout(slowTimer);
+        if (cancelled) return;
         setSlow(false);
         setLoading(false);
       });
-    return () => clearTimeout(slowTimer);
-  }, [search, category, ordering]);
+    return () => {
+      cancelled = true;
+      clearTimeout(slowTimer);
+    };
+  }, [term, category, ordering, reloadKey]);
 
   const featured = useMemo(() => everything.find((p) => p.primary_image) || null, [everything]);
 
@@ -103,7 +121,38 @@ export default function Home() {
     goToShop();
   }
 
-  const filtering = Boolean(search || category);
+  const filtering = Boolean(term || category);
+  const categoryName = categories.find((c) => String(c.id) === String(category))?.name;
+
+  let emptyResults;
+  if (term) {
+    emptyResults = (
+      <EmptyState
+        icon="search"
+        title={`No results for “${term}”`}
+        text="Check the spelling, or try a shorter or more general word."
+        action={{ label: "Clear search", onClick: () => setSearch("") }}
+        secondary={category ? { label: "Show all products", onClick: () => { setSearch(""); setCategory(""); } } : undefined}
+      />
+    );
+  } else if (category) {
+    emptyResults = (
+      <EmptyState
+        icon="grid"
+        title={`Nothing in ${categoryName || "this category"} yet`}
+        text="Sellers haven't listed anything here. Have a look at the rest of the shop."
+        action={{ label: "Show all products", onClick: () => setCategory("") }}
+      />
+    );
+  } else {
+    emptyResults = (
+      <EmptyState
+        icon="store"
+        title="The shop is getting ready"
+        text="Products from our sellers will appear here soon."
+      />
+    );
+  }
 
   return (
     <>
@@ -232,28 +281,20 @@ export default function Home() {
               <h3 className="shop-sub">All products</h3>
             </div>
           )}
-          {error && <p className="error-banner">{error}</p>}
           {slow && <p className="wake-note">The server was asleep and is waking up. The first load can take up to a minute.</p>}
-          {loading ? (
-            <div className="pgrid">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div className="pcard pcard-skel" key={i}>
-                  <div className="skeleton pcard-skel-img" />
-                  <div className="skeleton line" />
-                  <div className="skeleton line short" />
-                </div>
-              ))}
-            </div>
-          ) : products.length === 0 && !error ? (
-            <div className="empty-state">
-              {search
-                ? `No products match "${search}". Try a shorter word.`
-                : category
-                ? "Nothing in this category yet."
-                : "No products yet. Check back soon."}
-            </div>
+          {error && products.length === 0 ? (
+            <EmptyState
+              icon="alert"
+              title="We couldn't load the shop"
+              text={error}
+              action={{ label: "Try again", onClick: () => setReloadKey((k) => k + 1) }}
+            />
+          ) : loading && products.length === 0 ? (
+            <ProductGridSkeleton />
+          ) : products.length === 0 ? (
+            emptyResults
           ) : (
-            <div className="pgrid">
+            <div className={`pgrid${loading ? " is-refreshing" : ""}`} aria-busy={loading}>
               {products.map((p, i) => (
                 <ProductCard key={p.id} product={p} index={i} />
               ))}
